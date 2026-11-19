@@ -18,7 +18,10 @@ struct ContentView: View {
 
     var body: some View {
         VStack(spacing: 20) {
-            Text("Tip Jar").font(.largeTitle.bold())
+            HStack {
+                Text("Tip Jar").font(.largeTitle.bold())
+                Button("Help") { }  // deliberately does nothing: the click test must catch it
+            }
 
             VStack(spacing: 6) {
                 Text("Bill \(money(billCents))").font(.title2)
