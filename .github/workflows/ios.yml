@@ -1,0 +1,49 @@
+name: iOS Simulator Build
+on:
+  push:
+  workflow_dispatch:
+# One build per commit (no second run for the pull request), and a newer push cancels the older build:
+# Mac minutes count ten times against a private repository's free GitHub allowance.
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show Xcode
+        run: xcodebuild -version
+      - name: Generate the Xcode project (XcodeGen)
+        if: hashFiles('project.yml') != ''
+        run: brew install xcodegen && xcodegen generate
+      - name: Find project and scheme
+        id: find
+        run: |
+          WS=$(find . -maxdepth 2 -name "*.xcworkspace" -not -path "*/.swiftpm/*" -not -path "*.xcodeproj/*" | head -1)
+          PROJ=$(find . -maxdepth 2 -name "*.xcodeproj" | head -1)
+          if [ -n "$WS" ]; then CONTAINER="-workspace $WS"; LIST=$(xcodebuild -list -json -workspace "$WS"); else CONTAINER="-project $PROJ"; LIST=$(xcodebuild -list -json -project "$PROJ"); fi
+          SCHEME=$(echo "$LIST" | python3 -c "import sys,json; d=json.load(sys.stdin); s=(d.get('workspace') or d.get('project'))['schemes']; print(s[0] if s else '')")
+          echo "container=$CONTAINER" >> "$GITHUB_OUTPUT"
+          echo "scheme=$SCHEME" >> "$GITHUB_OUTPUT"
+          echo "Using $CONTAINER, scheme $SCHEME"
+      - name: Build for iOS Simulator
+        run: |
+          set -o pipefail
+          xcodebuild ${{ steps.find.outputs.container }} -scheme "${{ steps.find.outputs.scheme }}" \
+            -destination 'generic/platform=iOS Simulator' -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build | tee build.log | grep -E "error:|warning: .*deprecated|BUILD (SUCCEEDED|FAILED)|\*\* " || true
+          grep -q "BUILD SUCCEEDED" build.log
+      # The click test (XCUITest in the Simulator): every button on the first screen is pressed and must
+      # change something without crashing. Only for the final commit (its message has [ui-test]) and only
+      # when the project has the GhostClickTest UI test target: Mac minutes cost the most.
+      - name: Click test in the iOS Simulator
+        if: contains(github.event.head_commit.message, '[ui-test]') && hashFiles('**/GhostClickTest.swift') != ''
+        run: |
+          set -o pipefail
+          DEV=$(xcrun simctl list devices available -j | python3 -c "import sys,json; d=json.load(sys.stdin)['devices']; print(next(x['udid'] for k,v in d.items() if 'iOS' in k for x in v if 'iPhone' in x['name']))")
+          xcodebuild ${{ steps.find.outputs.container }} -scheme "${{ steps.find.outputs.scheme }}" -destination "id=$DEV" \
+            CODE_SIGNING_ALLOWED=NO test | tee test.log | grep -E "CLICKS:|error:|failed|XCTAssert|\*\* TEST" || true
+          grep -q "TEST SUCCEEDED" test.log
