@@ -1,0 +1,7 @@
+<resources>
+    <style name="Theme.Water" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#FF06182B</item>
+        <item name="android:statusBarColor">#FF06182B</item>
+        <item name="android:navigationBarColor">#FF06182B</item>
+    </style>
+</resources>
