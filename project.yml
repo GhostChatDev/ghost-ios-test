@@ -1,37 +1,51 @@
-name: TipJar
+name: Water
 options:
   bundleIdPrefix: com.example
   deploymentTarget:
     iOS: "17.0"
 targets:
-  TipJar:
+  Water:
     type: application
     platform: iOS
-    sources: [TipJar]
+    sources: [Water]
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.example.tipjar
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.water
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Water
         SWIFT_VERSION: "5.10"
         CODE_SIGNING_ALLOWED: NO
-  TipJarUITests:
-    type: bundle.ui-testing
+  WaterTests:
+    type: bundle.unit-test
     platform: iOS
-    sources: [TipJarUITests]
+    sources: [WaterTests]
     dependencies:
-      - target: TipJar
+      - target: Water
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
-        TEST_TARGET_NAME: TipJar
+        SWIFT_VERSION: "5.10"
+        CODE_SIGNING_ALLOWED: NO
+  WaterUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [WaterUITests]
+    dependencies:
+      - target: Water
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: Water
+        SWIFT_VERSION: "5.10"
         CODE_SIGNING_ALLOWED: NO
 schemes:
-  TipJar:
+  Water:
     build:
       targets:
-        TipJar: all
+        Water: all
     test:
       targets:
-        - TipJarUITests
+        - WaterTests
+        - WaterUITests
